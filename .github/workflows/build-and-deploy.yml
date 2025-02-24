@@ -1,0 +1,52 @@
+name: build-and-deploy
+
+on:
+  push:
+    paths-ignore:
+      - ./action
+      - README.md
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "20.18.2"
+
+      # Node
+      - name: Cache node_modules
+        uses: actions/cache@v3
+        with:
+          path: '**/node_modules'
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+
+      - name: Install deps
+        run: |
+          npm install -g pnpm@8.15.8
+          pnpm install
+
+      - name: Build
+        run: |
+          pnpm build
+          mkdir bundle
+          cp package.json bundle/package.json
+          cp pnpm-lock.yaml bundle/pnpm-lock.yaml
+          mv build bundle/build
+
+      - uses: romanlamsal/gueterbahnhof/action@main
+        with:
+          host: https://gueterbahnhof.lamsal.de
+          app_name: hennigram
+          path: app/bundle
+          api_key: ${{ secrets.GUETERBAHNHOF_API_KEY }}

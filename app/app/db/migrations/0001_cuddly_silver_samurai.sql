@@ -1,0 +1,1 @@
+ALTER TABLE "hennigram"."posts" DROP COLUMN "ownerEmail";
